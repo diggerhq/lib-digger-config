@@ -1,9 +1,9 @@
 package configuration
 
 import (
-	"digger-config/terragrunt/atlantis"
 	"errors"
 	"fmt"
+	"github.com/diggerhq/lib-digger-config/terragrunt/atlantis"
 	"github.com/dominikbraun/graph"
 	"gopkg.in/yaml.v3"
 	"log"

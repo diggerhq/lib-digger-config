@@ -1,4 +1,4 @@
-module digger-config
+module github.com/diggerhq/lib-digger-config
 
 go 1.20
 
