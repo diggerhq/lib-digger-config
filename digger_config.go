@@ -147,7 +147,26 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigFromString(yamlString string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
+	config := &DiggerConfig{}
+	configYaml, err := loadDiggerConfigYamlFromString(yamlString)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, "./")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = ValidateDiggerConfig(config)
+	if err != nil {
+		return config, configYaml, projectDependencyGraph, err
+	}
+	return config, configYaml, projectDependencyGraph, nil
+}
+
+func loadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	if err := yaml.Unmarshal([]byte(yamlString), configYaml); err != nil {
 		return nil, fmt.Errorf("error parsing yaml: %v", err)

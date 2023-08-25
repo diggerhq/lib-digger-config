@@ -637,6 +637,22 @@ func TestDiggerConfigDependencyGraphWithCyclesFails(t *testing.T) {
 	assert.Equal(t, "edge would create a cycle", err.Error())
 }
 
+func TestLoadDiggerConfigYamlFromString(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: prod
+  branch: /main/
+  dir: path/to/module/test
+`
+
+	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "default", dg.Projects[0].Workflow)
+	_, ok := dg.Workflows["default"]
+	assert.True(t, ok)
+}
+
 func createTempDir() string {
 	dir, err := os.MkdirTemp("", "tmp")
 	if err != nil {
