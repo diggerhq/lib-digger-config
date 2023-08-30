@@ -3,7 +3,6 @@ package configuration
 import (
 	"fmt"
 	"github.com/dominikbraun/graph"
-	"path/filepath"
 )
 
 const defaultWorkflowName = "default"
@@ -106,7 +105,7 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	return result
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) (*DiggerConfig, graph.Graph[string, string], error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, graph.Graph[string, string], error) {
 	var diggerConfig DiggerConfig
 
 	if diggerYaml.AutoMerge != nil {
@@ -161,23 +160,6 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml, workingDir string) 
 		for _, dependency := range project.DependencyProjects {
 			if !projectNames[dependency] {
 				return nil, nil, fmt.Errorf("project '%s' depends on '%s' which does not exist", project.Name, dependency)
-			}
-		}
-	}
-
-	if diggerYaml.GenerateProjectsConfig != nil && diggerYaml.GenerateProjectsConfig.TerragruntParsingConfig == nil {
-		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
-		dirs, err := dirWalker.GetDirs(workingDir)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		for _, dir := range dirs {
-			includePattern := diggerYaml.GenerateProjectsConfig.Include
-			excludePattern := diggerYaml.GenerateProjectsConfig.Exclude
-			if MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
-				project := Project{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
-				diggerConfig.Projects = append(diggerConfig.Projects, project)
 			}
 		}
 	}

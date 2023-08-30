@@ -135,7 +135,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 		return nil, nil, nil, err
 	}
 
-	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, workingDir)
+	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -147,14 +147,21 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func LoadDiggerConfigFromString(yamlString string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
+func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
 	config := &DiggerConfig{}
-	configYaml, err := loadDiggerConfigYamlFromString(yamlString)
+	configYaml, err := LoadDiggerConfigYamlFromString(yamlString)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml, "./")
+	err = ValidateDiggerConfigYaml(configYaml, "loaded_yaml_string")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	HandleYamlProjectGeneration(configYaml, terraformDir)
+
+	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -166,18 +173,37 @@ func LoadDiggerConfigFromString(yamlString string) (*DiggerConfig, *DiggerConfig
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func loadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	if err := yaml.Unmarshal([]byte(yamlString), configYaml); err != nil {
 		return nil, fmt.Errorf("error parsing yaml: %v", err)
 	}
 
-	err := validateDiggerConfigYaml(configYaml, "yaml")
-	if err != nil {
-		return configYaml, err
-	}
-
 	return configYaml, nil
+}
+
+func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) {
+	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
+		hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
+	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
+		hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
+	} else if config.GenerateProjectsConfig != nil {
+		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
+		dirs, err := dirWalker.GetDirs(terraformDir)
+
+		if err != nil {
+			fmt.Printf("Error while walking through directories: %v", err)
+		}
+
+		for _, dir := range dirs {
+			includePattern := config.GenerateProjectsConfig.Include
+			excludePattern := config.GenerateProjectsConfig.Exclude
+			if MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
+				project := ProjectYaml{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
+				config.Projects = append(config.Projects, &project)
+			}
+		}
+	}
 }
 
 func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
@@ -211,23 +237,19 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 		}
 	}
 
-	err = validateDiggerConfigYaml(configYaml, fileName)
+	err = ValidateDiggerConfigYaml(configYaml, fileName)
 	if err != nil {
 		return configYaml, err
 	}
 
+	HandleYamlProjectGeneration(configYaml, workingDir)
+
 	return configYaml, nil
 }
 
-func validateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
+func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return fmt.Errorf("no projects configuration found in '%s'", fileName)
-	}
-
-	if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.TerragruntParsingConfig != nil {
-		hydrateDiggerConfig(configYaml, *configYaml.GenerateProjectsConfig.TerragruntParsingConfig)
-	} else if configYaml.GenerateProjectsConfig != nil && configYaml.GenerateProjectsConfig.Terragrunt {
-		hydrateDiggerConfig(configYaml, TerragruntParsingConfig{})
 	}
 	return nil
 }
@@ -258,15 +280,10 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfig(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig) {
-	root := ""
-	if parsingConfig.GitRoot == nil {
-		wd, err := os.Getwd()
-		if err != nil {
-			log.Printf("failed to get working directory: %v", err)
-		} else {
-			root = wd
-		}
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) {
+	root := workingDir
+	if parsingConfig.GitRoot != nil {
+		root = path.Join(workingDir, *parsingConfig.GitRoot)
 	}
 	projectExternalChilds := true
 
@@ -357,14 +374,8 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 		return nil, err
 	}
 	if len(terragruntDirs) > 0 {
-		// TODO: add support for dependency graph when parsing terragrunt config
-		for _, dir := range terragruntDirs {
-			projectName := dir
-			if dir == "./" {
-				projectName = "default"
-			}
-			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: true, IncludePatterns: modulePatterns}
-			configYaml.Projects = append(configYaml.Projects, &project)
+		configYaml.GenerateProjectsConfig = &GenerateProjectsConfigYaml{
+			Terragrunt: true,
 		}
 		return configYaml, nil
 	} else if len(terraformDirs) > 0 {
