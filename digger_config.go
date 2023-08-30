@@ -149,10 +149,17 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 
 func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
 	config := &DiggerConfig{}
-	configYaml, err := loadDiggerConfigYamlFromString(yamlString, terraformDir)
+	configYaml, err := LoadDiggerConfigYamlFromString(yamlString)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	err = ValidateDiggerConfigYaml(configYaml, "loaded_yaml_string")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	HandleYamlProjectGeneration(configYaml, terraformDir)
 
 	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
@@ -166,23 +173,16 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func loadDiggerConfigYamlFromString(yamlString string, terraformDir string) (*DiggerConfigYaml, error) {
+func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error) {
 	configYaml := &DiggerConfigYaml{}
 	if err := yaml.Unmarshal([]byte(yamlString), configYaml); err != nil {
 		return nil, fmt.Errorf("error parsing yaml: %v", err)
 	}
 
-	err := validateDiggerConfigYaml(configYaml, "loaded yaml string")
-	if err != nil {
-		return configYaml, err
-	}
-
-	handleYamlProjectGeneration(configYaml, terraformDir)
-
 	return configYaml, nil
 }
 
-func handleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) {
+func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) {
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
 		hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
 	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
@@ -237,17 +237,17 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 		}
 	}
 
-	err = validateDiggerConfigYaml(configYaml, fileName)
+	err = ValidateDiggerConfigYaml(configYaml, fileName)
 	if err != nil {
 		return configYaml, err
 	}
 
-	handleYamlProjectGeneration(configYaml, workingDir)
+	HandleYamlProjectGeneration(configYaml, workingDir)
 
 	return configYaml, nil
 }
 
-func validateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
+func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) error {
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
