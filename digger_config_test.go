@@ -645,7 +645,7 @@ projects:
   dir: path/to/module/test
 `
 
-	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg)
+	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
 	assert.Equal(t, "default", dg.Projects[0].Workflow)
