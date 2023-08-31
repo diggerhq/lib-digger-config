@@ -2,10 +2,9 @@ package atlantis
 
 import (
 	"errors"
-	"strings"
-
 	"github.com/gruntwork-io/terragrunt/util"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
+	"strings"
 )
 
 var localModuleSourcePrefixes = []string{
