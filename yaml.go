@@ -1,6 +1,8 @@
 package configuration
 
 import (
+	"errors"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -150,7 +152,25 @@ func (w *WorkflowYaml) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
+	if err := validateWorkflowConfigurationYaml(raw.Configuration); err != nil {
+		return err
+	}
 	*w = WorkflowYaml(raw)
+	return nil
+}
+
+func validateWorkflowConfigurationYaml(config *WorkflowConfigurationYaml) error {
+	if config != nil {
+		if config.OnPullRequestPushed == nil {
+			return errors.New("workflow_configuration.on_pull_request_pushed is required")
+		}
+		if config.OnPullRequestClosed == nil {
+			return errors.New("workflow_configuration.on_pull_request_closed is required")
+		}
+		if config.OnCommitToDefault == nil {
+			return errors.New("workflow_configuration.on_commit_to_default is required")
+		}
+	}
 	return nil
 }
 
