@@ -39,7 +39,6 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20220407094043-a94812496cf5 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
-	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
@@ -152,8 +151,7 @@ require (
 require (
 	github.com/gruntwork-io/go-commons v0.17.1
 	github.com/gruntwork-io/terragrunt v0.50.10
-	github.com/hashicorp/go-getter/v2 v2.2.1
-	github.com/hashicorp/go-getter/v2 v2.2.1
+	github.com/hashicorp/go-getter v1.7.1
 	github.com/hashicorp/hcl/v2 v2.18.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230825013512-b800820f61b8
 	github.com/sirupsen/logrus v1.9.3
