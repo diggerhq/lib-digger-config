@@ -128,7 +128,7 @@ func (walker *FileSystemTerragruntDirWalker) GetDirs(workingDir string) ([]strin
 
 var ErrDiggerConfigConflict = errors.New("more than one digger config file detected, please keep either 'digger.yml' or 'digger.yaml'")
 
-func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
+func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	config := &DiggerConfig{}
 	configYaml, err := LoadDiggerConfigYaml(workingDir)
 	if err != nil {
@@ -147,7 +147,7 @@ func LoadDiggerConfig(workingDir string) (*DiggerConfig, *DiggerConfigYaml, grap
 	return config, configYaml, projectDependencyGraph, nil
 }
 
-func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, string], error) {
+func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*DiggerConfig, *DiggerConfigYaml, graph.Graph[string, Project], error) {
 	config := &DiggerConfig{}
 	configYaml, err := LoadDiggerConfigYamlFromString(yamlString)
 	if err != nil {

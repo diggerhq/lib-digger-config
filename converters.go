@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"errors"
 	"fmt"
 	"github.com/dominikbraun/graph"
 )
@@ -112,7 +113,7 @@ func copyWorkflows(workflows map[string]*WorkflowYaml) map[string]Workflow {
 	return result
 }
 
-func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, graph.Graph[string, string], error) {
+func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, graph.Graph[string, Project], error) {
 	var diggerConfig DiggerConfig
 
 	if diggerYaml.DependencyConfiguration != nil {
@@ -200,29 +201,42 @@ func ConvertDiggerYamlToConfig(diggerYaml *DiggerConfigYaml) (*DiggerConfig, gra
 	return &diggerConfig, dependencyGraph, nil
 }
 
-func CreateProjectDependencyGraph(projects []Project) (graph.Graph[string, string], error) {
-	g := graph.New(graph.StringHash, graph.Directed(), graph.PreventCycles())
-	for _, project := range projects {
-		v, _ := g.Vertex(project.Name)
+func CreateProjectDependencyGraph(projects []Project) (graph.Graph[string, Project], error) {
+	projectHash := func(p Project) string {
+		return p.Name
+	}
 
-		if v == "" {
-			err := g.AddVertex(project.Name)
+	projectsMap := make(map[string]Project)
+	for _, project := range projects {
+		projectsMap[project.Name] = project
+	}
+
+	g := graph.New(projectHash, graph.Directed(), graph.PreventCycles())
+	for _, project := range projects {
+		_, err := g.Vertex(project.Name)
+
+		if errors.Is(err, graph.ErrVertexNotFound) {
+			err := g.AddVertex(project)
 			if err != nil {
 				return nil, err
 			}
 		}
 		for _, dependency := range project.DependencyProjects {
-			v, _ := g.Vertex(dependency)
+			_, err := g.Vertex(dependency)
 
-			if v == "" {
-				err := g.AddVertex(dependency)
+			if errors.Is(err, graph.ErrVertexNotFound) {
+				dependencyProject, ok := projectsMap[dependency]
+				if !ok {
+					return nil, fmt.Errorf("project '%s' does not exist", dependency)
+				}
+				err := g.AddVertex(dependencyProject)
 
 				if err != nil {
 					return nil, err
 				}
 			}
 
-			err := g.AddEdge(dependency, project.Name)
+			err = g.AddEdge(dependency, project.Name)
 			if err != nil {
 				return nil, err
 			}

@@ -597,7 +597,26 @@ func TestDiggerConfigDependencyGraph2(t *testing.T) {
 		},
 	}
 
-	projects := []Project{p1, p2, p3, p4}
+	p5 := Project{
+		Name: "E",
+	}
+
+	p6 := Project{
+		Name: "F",
+	}
+
+	p7 := Project{
+		Name: "G",
+	}
+	p8 := Project{
+		Name: "H",
+	}
+
+	p9 := Project{
+		Name: "I",
+	}
+
+	projects := []Project{p1, p2, p3, p4, p5, p6, p7, p8, p9}
 
 	g, err := CreateProjectDependencyGraph(projects)
 
