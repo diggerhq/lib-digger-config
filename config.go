@@ -1,10 +1,15 @@
 package configuration
 
 type DiggerConfig struct {
-	Projects         []Project
-	AutoMerge        bool
-	CollectUsageData bool
-	Workflows        map[string]Workflow
+	DependencyConfiguration DependencyConfiguration
+	Projects                []Project
+	AutoMerge               bool
+	CollectUsageData        bool
+	Workflows               map[string]Workflow
+}
+
+type DependencyConfiguration struct {
+	Mode string
 }
 
 type Project struct {

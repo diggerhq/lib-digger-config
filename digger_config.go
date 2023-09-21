@@ -251,6 +251,11 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 	if (configYaml.Projects == nil || len(configYaml.Projects) == 0) && configYaml.GenerateProjectsConfig == nil {
 		return fmt.Errorf("no projects configuration found in '%s'", fileName)
 	}
+	if configYaml.DependencyConfiguration != nil {
+		if configYaml.DependencyConfiguration.Mode != DependencyConfigurationHard && configYaml.DependencyConfiguration.Mode != DependencyConfigurationSoft {
+			return fmt.Errorf("dependency configuration mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
+		}
+	}
 	return nil
 }
 
