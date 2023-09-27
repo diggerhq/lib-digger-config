@@ -1,6 +1,8 @@
 module github.com/diggerhq/lib-digger-config
 
-go 1.20
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/stretchr/testify v1.8.4
@@ -153,7 +155,7 @@ require (
 
 require (
 	github.com/gruntwork-io/go-commons v0.17.1
-	github.com/gruntwork-io/terragrunt v0.50.14
+	github.com/gruntwork-io/terragrunt v0.51.5
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/hcl/v2 v2.18.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230825013512-b800820f61b8
