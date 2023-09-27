@@ -572,6 +572,28 @@ func TestDiggerConfigDependencyGraph(t *testing.T) {
 	assert.Equal(t, []string{"C", "D", "B", "A", "E", "F"}, orderedProjects)
 }
 
+func TestDiggerYamlDependencyGraph(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: my-first-app
+  dir: app-one
+  workflow: default
+- name: my-second-app
+  dir: app-two
+  workflow: default
+  depends_on: ["my-first-app"]
+`
+	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "default", dg.Projects[0].Workflow)
+
+	assert.Equal(t, "my-first-app", dg.Projects[0].Name)
+	assert.Equal(t, "my-second-app", dg.Projects[1].Name)
+
+	assert.Equal(t, "my-first-app", dg.Projects[1].DependencyProjects[0])
+}
+
 func TestDiggerConfigDependencyGraph2(t *testing.T) {
 	p1 := Project{
 		Name:               "A",
