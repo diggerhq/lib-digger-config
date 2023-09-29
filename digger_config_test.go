@@ -804,3 +804,87 @@ func createFile(filepath string, content string) func() {
 		}
 	}
 }
+
+func TestDiggerGenerateProjectsMultiplePatterns(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - include: dev/*
+      exclude: dev/project
+      workflow: dev_workflow
+    - include: prod/*
+      exclude: prod/project
+      workflow: prod_workflow
+workflows:
+  dev_workflow:
+    steps:
+      - run: echo "run"
+      - init: terraform init
+      - plan: terraform plan
+  prod_workflow:
+    steps:
+      - run: echo "run"
+      - init: terraform init
+      - plan: terraform plan
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"dev/test1", "dev/test2", "dev/project", "testtt", "prod/one"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "test1", dg.Projects[0].Name)
+	assert.Equal(t, "test2", dg.Projects[1].Name)
+	assert.Equal(t, "one", dg.Projects[2].Name)
+	assert.Equal(t, "dev_workflow", dg.Projects[0].Workflow)
+	assert.Equal(t, "dev_workflow", dg.Projects[1].Workflow)
+	assert.Equal(t, "prod_workflow", dg.Projects[2].Workflow)
+	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
+	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
+	assert.Equal(t, "prod/one", dg.Projects[2].Dir)
+	assert.Equal(t, 3, len(dg.Projects))
+}
+
+func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
+	_, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+`
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Equal(t, "no projects configuration found in 'loaded_yaml_string'", err.Error())
+}
+
+// TestDiggerGenerateProjectsTooManyParameters include/exclude and blocks of include/exclude can't be used together
+func TestDiggerGenerateProjectsTooManyParameters(t *testing.T) {
+	_, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  include: dev/*
+  exclude: dev/project
+  blocks:
+    - include: dev/*
+      exclude: dev/project
+      workflow: default
+    - include: prod/*
+      exclude: prod/project
+      workflow: default
+`
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Equal(t, "if include/exclude patterns are used for project generation, blocks of include/exclude can't be used", err.Error())
+}
