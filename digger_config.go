@@ -278,16 +278,18 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 		}
 	}
 
-	if configYaml.GenerateProjectsConfig.Include == "" &&
-		configYaml.GenerateProjectsConfig.Exclude == "" &&
-		len(configYaml.GenerateProjectsConfig.Blocks) == 0 {
-		return fmt.Errorf("project generation parameters are empty")
-	}
+	if configYaml.GenerateProjectsConfig != nil {
+		if configYaml.GenerateProjectsConfig.Include == "" &&
+			configYaml.GenerateProjectsConfig.Exclude == "" &&
+			len(configYaml.GenerateProjectsConfig.Blocks) == 0 {
+			return fmt.Errorf("project generation parameters are empty")
+		}
 
-	if configYaml.GenerateProjectsConfig.Include != "" &&
-		configYaml.GenerateProjectsConfig.Exclude != "" &&
-		len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
-		return fmt.Errorf("if include/exclude patterns are used for project generation, blocks of include/exclude can't be used")
+		if configYaml.GenerateProjectsConfig.Include != "" &&
+			configYaml.GenerateProjectsConfig.Exclude != "" &&
+			len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
+			return fmt.Errorf("if include/exclude patterns are used for project generation, blocks of include/exclude can't be used")
+		}
 	}
 
 	return nil
