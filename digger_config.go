@@ -197,7 +197,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 
 		var includePatterns []string
 		var excludePatterns []string
-		if config.GenerateProjectsConfig.Include != "" && config.GenerateProjectsConfig.Exclude != "" {
+		if config.GenerateProjectsConfig.Include != "" || config.GenerateProjectsConfig.Exclude != "" {
 			includePatterns = []string{config.GenerateProjectsConfig.Include}
 			excludePatterns = []string{config.GenerateProjectsConfig.Exclude}
 			for _, dir := range dirs {
@@ -206,7 +206,8 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 					config.Projects = append(config.Projects, &project)
 				}
 			}
-		} else {
+		}
+		if config.GenerateProjectsConfig.Blocks != nil && len(config.GenerateProjectsConfig.Blocks) > 0 {
 			// if blocks of include/exclude patterns defined
 			for _, b := range config.GenerateProjectsConfig.Blocks {
 				includePatterns = []string{b.Include}
