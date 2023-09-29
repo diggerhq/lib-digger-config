@@ -14,10 +14,7 @@ require (
 	github.com/dominikbraun/graph v0.23.0
 )
 
-require (
-	github.com/kr/pretty v0.3.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-)
+require gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 
 require (
 	cloud.google.com/go v0.110.0 // indirect
@@ -115,6 +112,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sourcegraph/go-lsp v0.0.0-20200429204803-219e11d77f5d // indirect
