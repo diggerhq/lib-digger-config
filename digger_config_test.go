@@ -855,6 +855,7 @@ workflows:
 	assert.Equal(t, 3, len(dg.Projects))
 }
 
+// TestDiggerGenerateProjectsEmptyParameters test if missing parameters for generate_projects are handled correctly
 func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
 	_, teardown := setUp()
 	defer teardown()
@@ -887,4 +888,83 @@ generate_projects:
 	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
 	assert.Error(t, err)
 	assert.Equal(t, "if include/exclude patterns are used for project generation, blocks of include/exclude can't be used", err.Error())
+}
+
+func TestDiggerTerragruntProjects(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: .
+  terragrunt: true
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	if err != nil {
+		print(err)
+	}
+
+	print(config)
+}
+
+func TestDiggerTerragruntProjectGeneration(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
+
+	dirsToCreate := []string{"dev/test1"}
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	if err != nil {
+		print(err)
+	}
+
+	print(config)
+}
+
+func TestDiggerTerragruntProjectGeneration2(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt_parsing:
+  parallel: true
+  createProjectName: true
+  createWorkspace: true
+  defaultWorkflow: default
+
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
+
+	dirsToCreate := []string{"dev/test1"}
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	if err != nil {
+		print(err)
+	}
+
+	print(config)
 }
