@@ -195,12 +195,33 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			fmt.Printf("Error while walking through directories: %v", err)
 		}
 
-		for _, dir := range dirs {
-			includePattern := config.GenerateProjectsConfig.Include
-			excludePattern := config.GenerateProjectsConfig.Exclude
-			if MatchIncludeExcludePatternsToFile(dir, []string{includePattern}, []string{excludePattern}) {
-				project := ProjectYaml{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
-				config.Projects = append(config.Projects, &project)
+		var includePatterns []string
+		var excludePatterns []string
+		if config.GenerateProjectsConfig.Include != "" && config.GenerateProjectsConfig.Exclude != "" {
+			includePatterns = []string{config.GenerateProjectsConfig.Include}
+			excludePatterns = []string{config.GenerateProjectsConfig.Exclude}
+			for _, dir := range dirs {
+				if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
+					project := ProjectYaml{Name: filepath.Base(dir), Dir: dir, Workflow: defaultWorkflowName, Workspace: "default"}
+					config.Projects = append(config.Projects, &project)
+				}
+			}
+		} else {
+			// if blocks of include/exclude patterns defined
+			for _, b := range config.GenerateProjectsConfig.Blocks {
+				includePatterns = []string{b.Include}
+				excludePatterns = []string{b.Exclude}
+				workflow := "default"
+				if b.Workflow != "" {
+					workflow = b.Workflow
+				}
+
+				for _, dir := range dirs {
+					if MatchIncludeExcludePatternsToFile(dir, includePatterns, excludePatterns) {
+						project := ProjectYaml{Name: filepath.Base(dir), Dir: dir, Workflow: workflow, Workspace: "default"}
+						config.Projects = append(config.Projects, &project)
+					}
+				}
 			}
 		}
 	}
@@ -256,6 +277,19 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 			return fmt.Errorf("dependency configuration mode can only be '%s' or '%s'", DependencyConfigurationHard, DependencyConfigurationSoft)
 		}
 	}
+
+	if configYaml.GenerateProjectsConfig.Include == "" &&
+		configYaml.GenerateProjectsConfig.Exclude == "" &&
+		len(configYaml.GenerateProjectsConfig.Blocks) == 0 {
+		return fmt.Errorf("project generation parameters are empty")
+	}
+
+	if configYaml.GenerateProjectsConfig.Include != "" &&
+		configYaml.GenerateProjectsConfig.Exclude != "" &&
+		len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
+		return fmt.Errorf("if include/exclude patterns are used for project generation, blocks of include/exclude can't be used")
+	}
+
 	return nil
 }
 
