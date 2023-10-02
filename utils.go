@@ -47,5 +47,6 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 		}
 	}
 
+	log.Printf("MatchIncludeExcludePatternsToFile: file: %v, match: %v\n", fileToMatch, matching)
 	return matching
 }
