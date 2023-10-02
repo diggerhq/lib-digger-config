@@ -17,6 +17,7 @@ func NormalizeFileName(fileName string) string {
 
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
+
 	for i, _ := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
 	}
@@ -26,6 +27,7 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 
 	matching := false
 	for _, ipattern := range includePatterns {
+		log.Printf("MatchIncludeExcludePatternsToFile: file: %v, include pattern: %v\n", fileToMatch, ipattern)
 		isMatched, err := doublestar.PathMatch(ipattern, fileToMatch)
 		if err != nil {
 			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, ipattern, err)
@@ -37,6 +39,7 @@ func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []str
 	}
 
 	for _, epattern := range excludePatterns {
+		log.Printf("MatchIncludeExcludePatternsToFile: file: %v, exclude pattern: %v\n", fileToMatch, epattern)
 		excluded, err := doublestar.PathMatch(epattern, fileToMatch)
 		if err != nil {
 			log.Fatalf("Failed to match modified files (%v, %v): Error: %v", fileToMatch, epattern, err)
