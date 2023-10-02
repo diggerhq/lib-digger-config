@@ -15,7 +15,6 @@ import (
 func setUp() (string, func()) {
 	tempDir := createTempDir()
 	return tempDir, func() {
-		fmt.Printf("\nteardown: %v\n", tempDir)
 		deleteTempDir(tempDir)
 	}
 }
@@ -783,7 +782,6 @@ func createTempDir() string {
 }
 
 func deleteTempDir(name string) {
-	fmt.Printf("deleting: %v\n", name)
 	err := os.RemoveAll(name)
 	if err != nil {
 		fmt.Printf("deleteTempDir error, %v", err.Error())
@@ -950,7 +948,7 @@ generate_projects:
     defaultWorkflow: default
 `
 
-	repoUrl := "git@github.com:diggerhq/terragrunt-atlantis-config-examples.git"
+	repoUrl := "https://github.com/diggerhq/terragrunt-atlantis-config-examples.git"
 	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
 		URL:      repoUrl,
 		Progress: os.Stdout,
