@@ -1,8 +1,9 @@
 package configuration
 
 import (
+	"fmt"
 	"github.com/dominikbraun/graph"
-	"github.com/gruntwork-io/go-commons/git"
+	"github.com/go-git/go-git/v5"
 	"log"
 	"os"
 	"path"
@@ -13,6 +14,7 @@ import (
 
 func setUp() (string, func()) {
 	tempDir := createTempDir()
+	fmt.Printf("tempDir: %s\n", tempDir)
 	return tempDir, func() {
 		deleteTempDir(tempDir)
 	}
@@ -926,12 +928,16 @@ generate_projects:
     defaultWorkflow: default
 `
 
-	repoUrl := "https://github.com/transcend-io/terragrunt-atlantis-config/"
-	err := git.Clone(nil, repoUrl, tempDir)
+	repoUrl := "https://github.com/transcend-io/terragrunt-atlantis-config"
+
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
 	assert.NoError(t, err)
 
 	// example dir: /test_examples/chained_dependencies
-	projectDir := tempDir + "/test_examples/chained_dependencies"
+	projectDir := tempDir + "/temp/test_examples/chained_dependencies"
 
 	defer createFile(path.Join(projectDir, "digger.yml"), diggerCfg)()
 
@@ -989,7 +995,10 @@ generate_projects:
 `
 
 	repoUrl := "https://github.com/gruntwork-io/terragrunt-infrastructure-live-example"
-	err := git.Clone(nil, repoUrl, tempDir)
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
 	assert.NoError(t, err)
 
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
