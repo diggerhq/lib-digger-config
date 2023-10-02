@@ -14,8 +14,8 @@ import (
 
 func setUp() (string, func()) {
 	tempDir := createTempDir()
-	fmt.Printf("tempDir: %s\n", tempDir)
 	return tempDir, func() {
+		fmt.Printf("\nteardown: %v\n", tempDir)
 		deleteTempDir(tempDir)
 	}
 }
@@ -783,8 +783,10 @@ func createTempDir() string {
 }
 
 func deleteTempDir(name string) {
+	fmt.Printf("deleting: %v\n", name)
 	err := os.RemoveAll(name)
 	if err != nil {
+		fmt.Printf("deleteTempDir error, %v", err.Error())
 		log.Fatal(err)
 	}
 }
@@ -806,6 +808,26 @@ func createFile(filepath string, content string) func() {
 			log.Fatal(err)
 		}
 	}
+}
+
+func createAndCloseFile(filepath string, content string) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Printf("failed to close file %v\n", f.Name())
+		}
+	}(f)
+	return nil
 }
 
 func TestDiggerGenerateProjectsMultiplePatterns(t *testing.T) {
@@ -928,8 +950,7 @@ generate_projects:
     defaultWorkflow: default
 `
 
-	repoUrl := "https://github.com/transcend-io/terragrunt-atlantis-config"
-
+	repoUrl := "git@github.com:diggerhq/terragrunt-atlantis-config-examples.git"
 	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
 		URL:      repoUrl,
 		Progress: os.Stdout,
@@ -937,14 +958,12 @@ generate_projects:
 	assert.NoError(t, err)
 
 	// example dir: /test_examples/chained_dependencies
-	projectDir := tempDir + "/temp/test_examples/chained_dependencies"
+	projectDir := tempDir + "/chained_dependencies"
 
-	defer createFile(path.Join(projectDir, "digger.yml"), diggerCfg)()
-
-	_, config, _, err := LoadDiggerConfig(projectDir)
+	err = createAndCloseFile(path.Join(projectDir, "digger.yml"), diggerCfg)
 	assert.NoError(t, err)
-
-	print(config)
+	_, _, _, err = LoadDiggerConfig(projectDir)
+	assert.NoError(t, err)
 }
 
 func TestDiggerTerragruntProjectGenerationBasicModule(t *testing.T) {
