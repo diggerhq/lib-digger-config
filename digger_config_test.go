@@ -906,32 +906,36 @@ projects:
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
 
 	_, config, _, err := LoadDiggerConfig(tempDir)
-	if err != nil {
-		print(err)
-	}
+	assert.NoError(t, err)
 
 	print(config)
 }
 
-func TestDiggerTerragruntProjectGeneration(t *testing.T) {
+func TestDiggerTerragruntProjectGenerationChainedDependencies(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/chained_dependencies
+	// TODO: this test is a bit slow because we are cloning the whole repo, maybe we can copy it to a smaller repo
 	tempDir, teardown := setUp()
 	defer teardown()
 
 	diggerCfg := `
 generate_projects:
   terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    defaultWorkflow: default
 `
-	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
-	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
 
-	dirsToCreate := []string{"dev/test1"}
-	for _, dir := range dirsToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
-		assert.NoError(t, err, "expected error to be nil")
-	}
+	repoUrl := "https://github.com/transcend-io/terragrunt-atlantis-config/"
+	err := git.Clone(nil, repoUrl, tempDir)
+	assert.NoError(t, err)
 
-	_, config, _, err := LoadDiggerConfig(tempDir)
+	// example dir: /test_examples/chained_dependencies
+	projectDir := tempDir + "/test_examples/chained_dependencies"
+
+	defer createFile(path.Join(projectDir, "digger.yml"), diggerCfg)()
+
+	_, config, _, err := LoadDiggerConfig(projectDir)
 	assert.NoError(t, err)
 
 	print(config)
@@ -962,7 +966,7 @@ inputs = {
 }
 `
 	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
-	defer createFile(path.Join(tempDir, "hcl_file"), hclFile)()
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), hclFile)()
 
 	_, config, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err)
@@ -985,7 +989,6 @@ generate_projects:
 `
 
 	repoUrl := "https://github.com/gruntwork-io/terragrunt-infrastructure-live-example"
-
 	err := git.Clone(nil, repoUrl, tempDir)
 	assert.NoError(t, err)
 
