@@ -18,6 +18,7 @@ func NormalizeFileName(fileName string) string {
 func MatchIncludeExcludePatternsToFile(fileToMatch string, includePatterns []string, excludePatterns []string) bool {
 	fileToMatch = NormalizeFileName(fileToMatch)
 
+	log.Printf("MatchIncludeExcludePatternsToFile: file: %v, include pattern:%v exclude pattern:%v\n", fileToMatch, includePatterns, excludePatterns)
 	for i, _ := range includePatterns {
 		includePatterns[i] = NormalizeFileName(includePatterns[i])
 	}
