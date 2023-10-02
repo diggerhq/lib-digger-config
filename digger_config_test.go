@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"github.com/dominikbraun/graph"
+	"github.com/gruntwork-io/go-commons/git"
 	"log"
 	"os"
 	"path"
@@ -931,14 +932,14 @@ generate_projects:
 	}
 
 	_, config, _, err := LoadDiggerConfig(tempDir)
-	if err != nil {
-		print(err)
-	}
+	assert.NoError(t, err)
 
 	print(config)
 }
 
-func TestDiggerTerragruntProjectGeneration2(t *testing.T) {
+func TestDiggerTerragruntProjectGenerationBasicModule(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/basic_module
+
 	tempDir, teardown := setUp()
 	defer teardown()
 
@@ -952,22 +953,54 @@ generate_projects:
     defaultWorkflow: default
 
 `
-	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	hclFile := `terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
 
-	dirsToCreate := []string{"dev", "prod"}
-	for _, dir := range dirsToCreate {
-		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, dir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
-		//defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), "terraform {}")()
-		assert.NoError(t, err, "expected error to be nil")
-	}
+inputs = {
+  foo = "bar"
+}
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "hcl_file"), hclFile)()
 
 	_, config, _, err := LoadDiggerConfig(tempDir)
-	if err != nil {
-		print(err)
-	}
+	assert.NoError(t, err)
 
 	print(config)
+}
+
+func TestDiggerTerragruntInfrastructureLiveExample(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
+`
+
+	repoUrl := "https://github.com/gruntwork-io/terragrunt-infrastructure-live-example"
+
+	err := git.Clone(nil, repoUrl, tempDir)
+	assert.NoError(t, err)
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+
+	assert.Equal(t, "non-prod_us-east-1_qa_mysql", config.Projects[0].Name)
+	assert.Equal(t, "non-prod_us-east-1_qa_webserver-cluster", config.Projects[1].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_mysql", config.Projects[2].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
+	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
+	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
 }
 
 // todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
