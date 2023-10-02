@@ -3,15 +3,16 @@ package configuration
 import (
 	"errors"
 	"fmt"
-	"github.com/diggerhq/lib-digger-config/terragrunt/atlantis"
-	"github.com/dominikbraun/graph"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/diggerhq/lib-digger-config/terragrunt/atlantis"
+	"github.com/dominikbraun/graph"
+	"gopkg.in/yaml.v3"
 )
 
 type DirWalker interface {
@@ -422,9 +423,11 @@ func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
 		return configYaml, nil
 	} else if len(terraformDirs) > 0 {
 		for _, dir := range terraformDirs {
-			projectName := dir
+			var projectName string
 			if dir == "./" {
 				projectName = "default"
+			} else {
+				projectName = strings.ReplaceAll(dir, "/", "_")
 			}
 			project := ProjectYaml{Name: projectName, Dir: dir, Workflow: defaultWorkflowName, Workspace: "default", Terragrunt: false, IncludePatterns: modulePatterns}
 			configYaml.Projects = append(configYaml.Projects, &project)
