@@ -900,7 +900,7 @@ projects:
   dir: .
   terragrunt: true
 `
-	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
 
@@ -920,7 +920,7 @@ func TestDiggerTerragruntProjectGeneration(t *testing.T) {
 generate_projects:
   terragrunt: true
 `
-	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
 
 	dirsToCreate := []string{"dev/test1"}
@@ -944,20 +944,21 @@ func TestDiggerTerragruntProjectGeneration2(t *testing.T) {
 
 	diggerCfg := `
 generate_projects:
+  terragrunt: true
   terragrunt_parsing:
-  parallel: true
-  createProjectName: true
-  createWorkspace: true
-  defaultWorkflow: default
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
 
 `
-	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
-	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
 
-	dirsToCreate := []string{"dev/test1"}
+	dirsToCreate := []string{"dev", "prod"}
 	for _, dir := range dirsToCreate {
 		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
-		defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+		//defer createFile(path.Join(tempDir, dir, "terragrunt.hcl"), "terraform {}")()
 		assert.NoError(t, err, "expected error to be nil")
 	}
 
@@ -968,3 +969,5 @@ generate_projects:
 
 	print(config)
 }
+
+// todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
