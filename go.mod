@@ -167,7 +167,7 @@ require (
 require (
 	github.com/go-git/go-git/v5 v5.9.0
 	github.com/gruntwork-io/go-commons v0.17.1
-	github.com/gruntwork-io/terragrunt v0.51.7
+	github.com/gruntwork-io/terragrunt v0.51.8
 	github.com/hashicorp/go-getter v1.7.2
 	github.com/hashicorp/hcl/v2 v2.18.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230925220900-5a6f8d18746d
