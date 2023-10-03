@@ -304,8 +304,8 @@ generate_projects:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "test1", dg.Projects[0].Name)
-	assert.Equal(t, "test2", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
@@ -332,12 +332,12 @@ func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "dev/project", dg.Projects[0].Name)
-	assert.Equal(t, "dev/test1", dg.Projects[1].Name)
-	assert.Equal(t, "dev/test2", dg.Projects[2].Name)
-	assert.Equal(t, "prod/project", dg.Projects[3].Name)
-	assert.Equal(t, "prod/test1", dg.Projects[4].Name)
-	assert.Equal(t, "prod/test2", dg.Projects[5].Name)
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
+	assert.Equal(t, "prod_project", dg.Projects[3].Name)
+	assert.Equal(t, "prod_test1", dg.Projects[4].Name)
+	assert.Equal(t, "prod_test2", dg.Projects[5].Name)
 	assert.Equal(t, "test", dg.Projects[6].Name)
 	assert.Equal(t, 7, len(dg.Projects))
 }
@@ -368,8 +368,8 @@ generate_projects:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "utils", dg.Projects[0].Name)
-	assert.Equal(t, "test2", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test1_utils", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1/utils", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
@@ -866,9 +866,9 @@ workflows:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "test1", dg.Projects[0].Name)
-	assert.Equal(t, "test2", dg.Projects[1].Name)
-	assert.Equal(t, "one", dg.Projects[2].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
+	assert.Equal(t, "prod_one", dg.Projects[2].Name)
 	assert.Equal(t, "dev_workflow", dg.Projects[0].Workflow)
 	assert.Equal(t, "dev_workflow", dg.Projects[1].Workflow)
 	assert.Equal(t, "prod_workflow", dg.Projects[2].Workflow)
@@ -1030,6 +1030,33 @@ generate_projects:
 	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
 	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
 	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
+}
+
+func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	repoUrl := "https://github.com/diggerhq/generate_projects_multiple_blocks_demo"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "projects_dev_test1", config.Projects[0].Name)
+	assert.Equal(t, "projects/dev/test1", config.Projects[0].Dir)
+	assert.Equal(t, "projects_dev_test2", config.Projects[1].Name)
+	assert.Equal(t, "projects/dev/test2", config.Projects[1].Dir)
+	assert.Equal(t, "projects_dev_test3", config.Projects[2].Name)
+	assert.Equal(t, "projects/dev/test3", config.Projects[2].Dir)
+	assert.Equal(t, "projects_prod_test1", config.Projects[3].Name)
+	assert.Equal(t, "projects/prod/test1", config.Projects[3].Dir)
+	assert.Equal(t, "projects_prod_test2", config.Projects[4].Name)
+	assert.Equal(t, "projects/prod/test2", config.Projects[4].Dir)
+	assert.Equal(t, 5, len(config.Projects))
 }
 
 // todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
