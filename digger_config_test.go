@@ -1,7 +1,7 @@
 package configuration
 
 import (
-	"fmt"
+  "fmt"
 	"github.com/dominikbraun/graph"
 	"github.com/go-git/go-git/v5"
 	"log"
@@ -332,12 +332,12 @@ func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "dev/project", dg.Projects[0].Name)
-	assert.Equal(t, "dev/test1", dg.Projects[1].Name)
-	assert.Equal(t, "dev/test2", dg.Projects[2].Name)
-	assert.Equal(t, "prod/project", dg.Projects[3].Name)
-	assert.Equal(t, "prod/test1", dg.Projects[4].Name)
-	assert.Equal(t, "prod/test2", dg.Projects[5].Name)
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
+	assert.Equal(t, "prod_project", dg.Projects[3].Name)
+	assert.Equal(t, "prod_test1", dg.Projects[4].Name)
+	assert.Equal(t, "prod_test2", dg.Projects[5].Name)
 	assert.Equal(t, "test", dg.Projects[6].Name)
 	assert.Equal(t, 7, len(dg.Projects))
 }
