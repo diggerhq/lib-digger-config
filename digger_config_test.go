@@ -1,7 +1,7 @@
 package configuration
 
 import (
-  "fmt"
+	"fmt"
 	"github.com/dominikbraun/graph"
 	"github.com/go-git/go-git/v5"
 	"log"
@@ -1030,6 +1030,33 @@ generate_projects:
 	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
 	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
 	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
+}
+
+func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	repoUrl := "https://github.com/diggerhq/generate_projects_multiple_blocks_demo"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "projects_dev_test1", config.Projects[0].Name)
+	assert.Equal(t, "projects/dev/test1", config.Projects[0].Dir)
+	assert.Equal(t, "projects_dev_test2", config.Projects[1].Name)
+	assert.Equal(t, "projects/dev/test2", config.Projects[1].Dir)
+	assert.Equal(t, "projects_dev_test3", config.Projects[2].Name)
+	assert.Equal(t, "projects/dev/test3", config.Projects[2].Dir)
+	assert.Equal(t, "projects_prod_test1", config.Projects[3].Name)
+	assert.Equal(t, "projects/prod/test1", config.Projects[3].Dir)
+	assert.Equal(t, "projects_prod_test2", config.Projects[4].Name)
+	assert.Equal(t, "projects/prod/test2", config.Projects[4].Dir)
+	assert.Equal(t, 5, len(config.Projects))
 }
 
 // todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
