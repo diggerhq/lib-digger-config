@@ -160,7 +160,10 @@ func LoadDiggerConfigFromString(yamlString string, terraformDir string) (*Digger
 		return nil, nil, nil, err
 	}
 
-	HandleYamlProjectGeneration(configYaml, terraformDir)
+	err = HandleYamlProjectGeneration(configYaml, terraformDir)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	config, projectDependencyGraph, err := ConvertDiggerYamlToConfig(configYaml)
 	if err != nil {
@@ -183,11 +186,17 @@ func LoadDiggerConfigYamlFromString(yamlString string) (*DiggerConfigYaml, error
 	return configYaml, nil
 }
 
-func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) {
+func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) error {
 	if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.TerragruntParsingConfig != nil {
-		hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, *config.GenerateProjectsConfig.TerragruntParsingConfig, terraformDir)
+		if err != nil {
+			return err
+		}
 	} else if config.GenerateProjectsConfig != nil && config.GenerateProjectsConfig.Terragrunt {
-		hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
+		err := hydrateDiggerConfigYamlWithTerragrunt(config, TerragruntParsingConfig{}, terraformDir)
+		if err != nil {
+			return err
+		}
 	} else if config.GenerateProjectsConfig != nil {
 		var dirWalker = &FileSystemTopLevelTerraformDirWalker{}
 		dirs, err := dirWalker.GetDirs(terraformDir)
@@ -227,6 +236,7 @@ func HandleYamlProjectGeneration(config *DiggerConfigYaml, terraformDir string) 
 			}
 		}
 	}
+	return nil
 }
 
 func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
@@ -265,7 +275,10 @@ func LoadDiggerConfigYaml(workingDir string) (*DiggerConfigYaml, error) {
 		return configYaml, err
 	}
 
-	HandleYamlProjectGeneration(configYaml, workingDir)
+	err = HandleYamlProjectGeneration(configYaml, workingDir)
+	if err != nil {
+		return configYaml, err
+	}
 
 	return configYaml, nil
 }
@@ -281,12 +294,6 @@ func ValidateDiggerConfigYaml(configYaml *DiggerConfigYaml, fileName string) err
 	}
 
 	if configYaml.GenerateProjectsConfig != nil {
-		if configYaml.GenerateProjectsConfig.Include == "" &&
-			configYaml.GenerateProjectsConfig.Exclude == "" &&
-			len(configYaml.GenerateProjectsConfig.Blocks) == 0 {
-			return fmt.Errorf("project generation parameters are empty")
-		}
-
 		if configYaml.GenerateProjectsConfig.Include != "" &&
 			configYaml.GenerateProjectsConfig.Exclude != "" &&
 			len(configYaml.GenerateProjectsConfig.Blocks) != 0 {
@@ -323,7 +330,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 	return nil
 }
 
-func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) {
+func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) error {
 	root := workingDir
 	if parsingConfig.GitRoot != nil {
 		root = path.Join(workingDir, *parsingConfig.GitRoot)
@@ -373,7 +380,12 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		log.Printf("failed to autogenerate config: %v", err)
 	}
 
+	if atlantisConfig.Projects == nil {
+		return fmt.Errorf("atlantisConfig.Projects is nil")
+	}
+
 	configYaml.AutoMerge = &atlantisConfig.AutoMerge
+
 	for _, atlantisProject := range atlantisConfig.Projects {
 		configYaml.Projects = append(configYaml.Projects, &ProjectYaml{
 			Name:            atlantisProject.Name,
@@ -384,6 +396,7 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 			IncludePatterns: atlantisProject.Autoplan.WhenModified,
 		})
 	}
+	return nil
 }
 
 func AutoDetectDiggerConfig(workingDir string) (*DiggerConfigYaml, error) {
