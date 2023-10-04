@@ -7,11 +7,16 @@ import (
 )
 
 type DiggerConfigYaml struct {
-	Projects               []*ProjectYaml              `yaml:"projects"`
-	AutoMerge              *bool                       `yaml:"auto_merge"`
-	Workflows              map[string]*WorkflowYaml    `yaml:"workflows"`
-	CollectUsageData       *bool                       `yaml:"collect_usage_data,omitempty"`
-	GenerateProjectsConfig *GenerateProjectsConfigYaml `yaml:"generate_projects"`
+	DependencyConfiguration *DependencyConfigurationYaml `yaml:"dependency_configuration"`
+	Projects                []*ProjectYaml               `yaml:"projects"`
+	AutoMerge               *bool                        `yaml:"auto_merge"`
+	Workflows               map[string]*WorkflowYaml     `yaml:"workflows"`
+	CollectUsageData        *bool                        `yaml:"collect_usage_data,omitempty"`
+	GenerateProjectsConfig  *GenerateProjectsConfigYaml  `yaml:"generate_projects"`
+}
+
+type DependencyConfigurationYaml struct {
+	Mode string `yaml:"mode"`
 }
 
 type ProjectYaml struct {
@@ -69,10 +74,17 @@ type EnvVarYaml struct {
 	Value     string `yaml:"value"`
 }
 
+type BlockYaml struct {
+	Include  string `yaml:"include"`
+	Exclude  string `yaml:"exclude"`
+	Workflow string `yaml:"workflow"`
+}
+
 type GenerateProjectsConfigYaml struct {
 	Include                 string                   `yaml:"include"`
 	Exclude                 string                   `yaml:"exclude"`
 	Terragrunt              bool                     `yaml:"terragrunt"`
+	Blocks                  []BlockYaml              `yaml:"blocks"`
 	TerragruntParsingConfig *TerragruntParsingConfig `yaml:"terragrunt_parsing,omitempty"`
 }
 

@@ -1,7 +1,9 @@
 package configuration
 
 import (
+	"fmt"
 	"github.com/dominikbraun/graph"
+	"github.com/go-git/go-git/v5"
 	"log"
 	"os"
 	"path"
@@ -302,8 +304,8 @@ generate_projects:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "test1", dg.Projects[0].Name)
-	assert.Equal(t, "test2", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
@@ -330,12 +332,12 @@ func TestGenerateProjectsWithoutDiggerConfig(t *testing.T) {
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "dev/project", dg.Projects[0].Name)
-	assert.Equal(t, "dev/test1", dg.Projects[1].Name)
-	assert.Equal(t, "dev/test2", dg.Projects[2].Name)
-	assert.Equal(t, "prod/project", dg.Projects[3].Name)
-	assert.Equal(t, "prod/test1", dg.Projects[4].Name)
-	assert.Equal(t, "prod/test2", dg.Projects[5].Name)
+	assert.Equal(t, "dev_project", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test1", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[2].Name)
+	assert.Equal(t, "prod_project", dg.Projects[3].Name)
+	assert.Equal(t, "prod_test1", dg.Projects[4].Name)
+	assert.Equal(t, "prod_test2", dg.Projects[5].Name)
 	assert.Equal(t, "test", dg.Projects[6].Name)
 	assert.Equal(t, 7, len(dg.Projects))
 }
@@ -366,8 +368,8 @@ generate_projects:
 	dg, _, _, err := LoadDiggerConfig(tempDir)
 	assert.NoError(t, err, "expected error to be nil")
 	assert.NotNil(t, dg, "expected digger config to be not nil")
-	assert.Equal(t, "utils", dg.Projects[0].Name)
-	assert.Equal(t, "test2", dg.Projects[1].Name)
+	assert.Equal(t, "dev_test1_utils", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
 	assert.Equal(t, "dev/test1/utils", dg.Projects[0].Dir)
 	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
 	assert.Equal(t, 2, len(dg.Projects))
@@ -572,6 +574,28 @@ func TestDiggerConfigDependencyGraph(t *testing.T) {
 	assert.Equal(t, []string{"C", "D", "B", "A", "E", "F"}, orderedProjects)
 }
 
+func TestDiggerYamlDependencyGraph(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: my-first-app
+  dir: app-one
+  workflow: default
+- name: my-second-app
+  dir: app-two
+  workflow: default
+  depends_on: ["my-first-app"]
+`
+	dg, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "default", dg.Projects[0].Workflow)
+
+	assert.Equal(t, "my-first-app", dg.Projects[0].Name)
+	assert.Equal(t, "my-second-app", dg.Projects[1].Name)
+
+	assert.Equal(t, "my-first-app", dg.Projects[1].DependencyProjects[0])
+}
+
 func TestDiggerConfigDependencyGraph2(t *testing.T) {
 	p1 := Project{
 		Name:               "A",
@@ -597,7 +621,26 @@ func TestDiggerConfigDependencyGraph2(t *testing.T) {
 		},
 	}
 
-	projects := []Project{p1, p2, p3, p4}
+	p5 := Project{
+		Name: "E",
+	}
+
+	p6 := Project{
+		Name: "F",
+	}
+
+	p7 := Project{
+		Name: "G",
+	}
+	p8 := Project{
+		Name: "H",
+	}
+
+	p9 := Project{
+		Name: "I",
+	}
+
+	projects := []Project{p1, p2, p3, p4, p5, p6, p7, p8, p9}
 
 	g, err := CreateProjectDependencyGraph(projects)
 
@@ -741,6 +784,7 @@ func createTempDir() string {
 func deleteTempDir(name string) {
 	err := os.RemoveAll(name)
 	if err != nil {
+		fmt.Printf("deleteTempDir error, %v", err.Error())
 		log.Fatal(err)
 	}
 }
@@ -763,3 +807,256 @@ func createFile(filepath string, content string) func() {
 		}
 	}
 }
+
+func createAndCloseFile(filepath string, content string) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(content)
+	if err != nil {
+		return err
+	}
+
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Printf("failed to close file %v\n", f.Name())
+		}
+	}(f)
+	return nil
+}
+
+func TestDiggerGenerateProjectsMultiplePatterns(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  blocks:
+    - include: dev/*
+      exclude: dev/project
+      workflow: dev_workflow
+    - include: prod/*
+      exclude: prod/project
+      workflow: prod_workflow
+workflows:
+  dev_workflow:
+    steps:
+      - run: echo "run"
+      - init: terraform init
+      - plan: terraform plan
+  prod_workflow:
+    steps:
+      - run: echo "run"
+      - init: terraform init
+      - plan: terraform plan
+`
+	deleteFile := createFile(path.Join(tempDir, "digger.yml"), diggerCfg)
+	defer deleteFile()
+	dirsToCreate := []string{"dev/test1", "dev/test2", "dev/project", "testtt", "prod/one"}
+
+	for _, dir := range dirsToCreate {
+		err := os.MkdirAll(path.Join(tempDir, dir), os.ModePerm)
+		defer createFile(path.Join(tempDir, dir, "main.tf"), "")()
+		assert.NoError(t, err, "expected error to be nil")
+	}
+
+	dg, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err, "expected error to be nil")
+	assert.NotNil(t, dg, "expected digger config to be not nil")
+	assert.Equal(t, "dev_test1", dg.Projects[0].Name)
+	assert.Equal(t, "dev_test2", dg.Projects[1].Name)
+	assert.Equal(t, "prod_one", dg.Projects[2].Name)
+	assert.Equal(t, "dev_workflow", dg.Projects[0].Workflow)
+	assert.Equal(t, "dev_workflow", dg.Projects[1].Workflow)
+	assert.Equal(t, "prod_workflow", dg.Projects[2].Workflow)
+	assert.Equal(t, "dev/test1", dg.Projects[0].Dir)
+	assert.Equal(t, "dev/test2", dg.Projects[1].Dir)
+	assert.Equal(t, "prod/one", dg.Projects[2].Dir)
+	assert.Equal(t, 3, len(dg.Projects))
+}
+
+// TestDiggerGenerateProjectsEmptyParameters test if missing parameters for generate_projects are handled correctly
+func TestDiggerGenerateProjectsEmptyParameters(t *testing.T) {
+	_, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+`
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Equal(t, "no projects configuration found in 'loaded_yaml_string'", err.Error())
+}
+
+// TestDiggerGenerateProjectsTooManyParameters include/exclude and blocks of include/exclude can't be used together
+func TestDiggerGenerateProjectsTooManyParameters(t *testing.T) {
+	_, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  include: dev/*
+  exclude: dev/project
+  blocks:
+    - include: dev/*
+      exclude: dev/project
+      workflow: default
+    - include: prod/*
+      exclude: prod/project
+      workflow: default
+`
+	_, _, _, err := LoadDiggerConfigFromString(diggerCfg, "./")
+	assert.Error(t, err)
+	assert.Equal(t, "if include/exclude patterns are used for project generation, blocks of include/exclude can't be used", err.Error())
+}
+
+func TestDiggerTerragruntProjects(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+projects:
+- name: dev
+  dir: .
+  terragrunt: true
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "main.tf"), "resource \"null_resource\" \"test4\" {}")()
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), "terraform {}")()
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+
+	print(config)
+}
+
+func TestDiggerTerragruntProjectGenerationChainedDependencies(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/chained_dependencies
+	// TODO: this test is a bit slow because we are cloning the whole repo, maybe we can copy it to a smaller repo
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    defaultWorkflow: default
+`
+
+	repoUrl := "https://github.com/diggerhq/terragrunt-atlantis-config-examples.git"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	// example dir: /test_examples/chained_dependencies
+	projectDir := tempDir + "/chained_dependencies"
+
+	err = createAndCloseFile(path.Join(projectDir, "digger.yml"), diggerCfg)
+	assert.NoError(t, err)
+	_, _, _, err = LoadDiggerConfig(projectDir)
+	assert.NoError(t, err)
+}
+
+func TestDiggerTerragruntProjectGenerationBasicModule(t *testing.T) {
+	// based on https://github.com/transcend-io/terragrunt-atlantis-config/tree/master/test_examples/basic_module
+
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
+
+`
+	hclFile := `terraform {
+  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+}
+
+inputs = {
+  foo = "bar"
+}
+`
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+	defer createFile(path.Join(tempDir, "terragrunt.hcl"), hclFile)()
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+
+	print(config)
+}
+
+func TestDiggerTerragruntInfrastructureLiveExample(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	diggerCfg := `
+generate_projects:
+  terragrunt: true
+  terragrunt_parsing:
+    parallel: true
+    createProjectName: true
+    createWorkspace: true
+    defaultWorkflow: default
+`
+
+	repoUrl := "https://github.com/gruntwork-io/terragrunt-infrastructure-live-example"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+
+	assert.Equal(t, "non-prod_us-east-1_qa_mysql", config.Projects[0].Name)
+	assert.Equal(t, "non-prod_us-east-1_qa_webserver-cluster", config.Projects[1].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_mysql", config.Projects[2].Name)
+	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
+	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
+	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
+}
+
+func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
+	tempDir, teardown := setUp()
+	defer teardown()
+
+	repoUrl := "https://github.com/diggerhq/generate_projects_multiple_blocks_demo"
+	_, err := git.PlainClone(tempDir, false, &git.CloneOptions{
+		URL:      repoUrl,
+		Progress: os.Stdout,
+	})
+	assert.NoError(t, err)
+
+	_, config, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "projects_dev_test1", config.Projects[0].Name)
+	assert.Equal(t, "projects/dev/test1", config.Projects[0].Dir)
+	assert.Equal(t, "projects_dev_test2", config.Projects[1].Name)
+	assert.Equal(t, "projects/dev/test2", config.Projects[1].Dir)
+	assert.Equal(t, "projects_dev_test3", config.Projects[2].Name)
+	assert.Equal(t, "projects/dev/test3", config.Projects[2].Dir)
+	assert.Equal(t, "projects_prod_test1", config.Projects[3].Name)
+	assert.Equal(t, "projects/prod/test1", config.Projects[3].Dir)
+	assert.Equal(t, "projects_prod_test2", config.Projects[4].Name)
+	assert.Equal(t, "projects/prod/test2", config.Projects[4].Dir)
+	assert.Equal(t, 5, len(config.Projects))
+}
+
+// todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
