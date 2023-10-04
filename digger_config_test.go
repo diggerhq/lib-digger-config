@@ -1080,7 +1080,13 @@ projects:
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 
-	result := config.GetModifiedProjects([]string{"terraform/stg/stg.auto.tf"})
+	result := config.GetModifiedProjects([]string{"terraform/stg/stg.auto.tfvars"})
+	assert.Equal(t, 1, len(result))
+
+	result = config.GetModifiedProjects([]string{"terraform/svc/stg.auto.tfvars"})
+	assert.Equal(t, 1, len(result))
+
+	result = config.GetModifiedProjects([]string{"terraform/dev/stg.auto.txt"})
 	assert.Equal(t, 1, len(result))
 }
 
