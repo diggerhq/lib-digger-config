@@ -420,9 +420,9 @@ func (c *DiggerConfig) GetModifiedProjects(changedFiles []string) []Project {
 			includePatterns := project.IncludePatterns
 			excludePatterns := project.ExcludePatterns
 			if !project.Terragrunt {
-				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*.tf"))
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "**", "*"))
 			} else {
-				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*.hcl"))
+				includePatterns = append(includePatterns, filepath.Join(project.Dir, "*"))
 			}
 			// all our patterns are the globale dir pattern + the include patterns specified by user
 			if MatchIncludeExcludePatternsToFile(changedFile, includePatterns, excludePatterns) {
