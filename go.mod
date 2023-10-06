@@ -173,5 +173,5 @@ require (
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20230925220900-5a6f8d18746d
 	github.com/sirupsen/logrus v1.9.3
 	github.com/zclconf/go-cty v1.14.1
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 )
