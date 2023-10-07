@@ -1030,6 +1030,9 @@ generate_projects:
 	assert.Equal(t, "non-prod_us-east-1_stage_webserver-cluster", config.Projects[3].Name)
 	assert.Equal(t, "prod_us-east-1_prod_mysql", config.Projects[4].Name)
 	assert.Equal(t, "prod_us-east-1_prod_webserver-cluster", config.Projects[5].Name)
+
+	result := MatchIncludeExcludePatternsToFile("/prod/us-east-1/prod/mysql/terragrunt.hcl", config.Projects[4].IncludePatterns, config.Projects[4].ExcludePatterns)
+	assert.Equal(t, true, result)
 }
 
 func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
