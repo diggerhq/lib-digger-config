@@ -699,7 +699,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
-			fmt.Print"failed to get terragrunt files of %v: %v", workingDir, err)
+			fmt.Print("failed to get terragrunt files of %v: %v", workingDir, err)
 			return nil, nil, err
 		}
 
