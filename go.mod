@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.6.0
+	github.com/bmatcuk/doublestar/v4 v4.6.1
 	github.com/dominikbraun/graph v0.23.0
 )
 
