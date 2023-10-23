@@ -2,6 +2,7 @@ package atlantis
 
 import (
 	"context"
+	"fmt"
 	"github.com/gruntwork-io/terragrunt/cli/commands/terraform"
 	"github.com/gruntwork-io/terragrunt/config"
 	"github.com/gruntwork-io/terragrunt/options"
@@ -663,6 +664,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	// Ensure the gitRoot has a trailing slash and is an absolute path
 	absoluteGitRoot, err := filepath.Abs(gitRoot)
 	if err != nil {
+		fmt.Printf("failed to fetch git root: %v", err)
 		return nil, nil, err
 	}
 	gitRoot = absoluteGitRoot + string(filepath.Separator)
@@ -697,6 +699,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 	for _, workingDir := range workingDirs {
 		terragruntFiles, err := getAllTerragruntFiles(filterPath, projectHclFiles, workingDir)
 		if err != nil {
+			fmt.Printf("failed to get terragrunt files of %v: %v", workingDir, err)
 			return nil, nil, err
 		}
 
@@ -779,6 +782,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			projectHcl := lookupProjectHcl(projectHclDirMap, workingDir)
 			err := sem.Acquire(ctx, 1)
 			if err != nil {
+				fmt.Printf("failed to acquire lock: %v", err)
 				return nil, nil, err
 			}
 
@@ -803,6 +807,7 @@ func Parse(gitRoot string, projectHclFiles []string, createHclProjectExternalChi
 			})
 
 			if err := errGroup.Wait(); err != nil {
+				fmt.Printf("failed while group wait: %v", err)
 				return nil, nil, err
 			}
 		}

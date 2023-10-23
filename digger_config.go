@@ -333,6 +333,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 }
 
 func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) error {
+	fmt.Print("!!!!!!!")
 	root := workingDir
 	if parsingConfig.GitRoot != nil {
 		root = path.Join(workingDir, *parsingConfig.GitRoot)
@@ -378,8 +379,10 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 	)
+	log.Printf("Atlantis config parsing completed!!!")
+	log.Printf("%v - %v", atlantisConfig, err)
 	if err != nil {
-		log.Printf("failed to autogenerate config: %v", err)
+		fmt.Printf("failed to autogenerate config: %v", err)
 	}
 
 	if atlantisConfig.Projects == nil {
