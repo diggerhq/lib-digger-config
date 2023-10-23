@@ -333,6 +333,7 @@ func ValidateDiggerConfig(config *DiggerConfig) error {
 }
 
 func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsingConfig TerragruntParsingConfig, workingDir string) error {
+	fmt.Print("!!!!!!!")
 	root := workingDir
 	if parsingConfig.GitRoot != nil {
 		root = path.Join(workingDir, *parsingConfig.GitRoot)
