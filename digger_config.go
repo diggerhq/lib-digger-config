@@ -378,6 +378,8 @@ func hydrateDiggerConfigYamlWithTerragrunt(configYaml *DiggerConfigYaml, parsing
 		parsingConfig.PreserveProjects,
 		parsingConfig.UseProjectMarkers,
 	)
+	log.Printf("Atlantis config parsing completed!!!")
+	log.Printf("%v - %v", atlantisConfig, err)
 	if err != nil {
 		log.Printf("failed to autogenerate config: %v", err)
 	}
