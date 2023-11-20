@@ -1059,4 +1059,35 @@ func TestDiggerGenerateProjectsMultipleBlocksDemo(t *testing.T) {
 	assert.Equal(t, 5, len(config.Projects))
 }
 
+func TestDiggerConfigGetModifiedProjectsList(t *testing.T) {
+	diggerCfg := `
+projects:
+- name: dev
+  dir: terraform/dev
+
+- name: stg
+  dir: terraform/stg
+
+- name: svc
+  dir: terraform/svc
+`
+
+	tempDir, teardown := setUp()
+	defer teardown()
+	defer createFile(path.Join(tempDir, "digger.yml"), diggerCfg)()
+
+	config, _, _, err := LoadDiggerConfig(tempDir)
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+
+	result := config.GetModifiedProjects([]string{"terraform/stg/stg.auto.tfvars"})
+	assert.Equal(t, 1, len(result))
+
+	result = config.GetModifiedProjects([]string{"terraform/svc/stg.auto.tfvars"})
+	assert.Equal(t, 1, len(result))
+
+	result = config.GetModifiedProjects([]string{"terraform/dev/stg.auto.txt"})
+	assert.Equal(t, 1, len(result))
+}
+
 // todo test terragrunt config with terragrunt_parsing block but without terragrunt: true
